@@ -44,7 +44,7 @@ return {
 	Gravity_DoublePulse = {
 		Id = "Gravity_DoublePulse",
 		DisplayName = "Pulso Duplo",
-		Description = "Gravity Pulse dispara uma segunda explosão fraca",
+		Description = "Gravity Pulse dispara uma segunda explosão menor",
 		Core = "Gravity",
 		Rarity = "Epic",
 		MaxStacks = 1,

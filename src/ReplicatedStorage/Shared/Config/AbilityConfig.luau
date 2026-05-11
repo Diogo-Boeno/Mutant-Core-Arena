@@ -3,10 +3,10 @@ return {
 		Id = "GravityPulse",
 		Core = "Gravity",
 
-		Cooldown = 8,
-		Radius = 22,
-		Damage = 35,
-		PullForce = 70,
+		Cooldown = 3,--8
+		Radius = 24, -- 22
+		Damage = 40, -- 40
+		PullForce = 75, -- 70
 
 		Server = {
 			MaxTargets = 30,

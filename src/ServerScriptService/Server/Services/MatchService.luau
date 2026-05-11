@@ -89,15 +89,34 @@ function MatchService:CreatePlayerState(player)
 	}
 end
 
+function MatchService:AddCellsEarned(player, reward)
+    self:GetPlayerState(player).CellsEarned += reward
+end
+
 function MatchService:RunMatchLoop()
+	local nextMutationOfferAt = os.clock() + (MatchConfig.MutationOfferInterval or 45)
+
 	while currentState == MatchState.Running do
 		local elapsed = os.clock() - matchStartedAt
 		local remaining = math.max(0, MatchConfig.MatchDuration - elapsed)
 
 		Net:FireAllClients("HUDUpdate", {
+			Type = "Timer",
 			TimeRemaining = remaining,
-			MatchState = currentState,
+			Elapsed = elapsed,
 		})
+
+		if os.clock() >= nextMutationOfferAt then
+			local MutationService = require(script.Parent.MutationService)
+
+			for player, state in pairs(playerStates) do
+				if player.Parent == Players and state.IsAlive then
+					MutationService:OfferMutations(player)
+				end
+			end
+
+			nextMutationOfferAt = os.clock() + (MatchConfig.MutationOfferInterval or 45)
+		end
 
 		if elapsed >= MatchConfig.MatchDuration then
 			self:EndMatch()
@@ -114,7 +133,7 @@ function MatchService:EndMatch()
 	end
 
 	print("[MatchService] Ending match")
-    
+
     local EnemyService = require(script.Parent.EnemyService)
 
     EnemyService:ClearEnemies()

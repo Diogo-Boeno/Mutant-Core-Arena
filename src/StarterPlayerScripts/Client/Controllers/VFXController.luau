@@ -22,6 +22,12 @@ function VFXController:Start()
 	Net:OnClientEvent("ClientVFX", function(payload)
 		if payload.Type == "GravityPulse" then
 			self:PlayGravityPulse(payload)
+		elseif payload.Type == "EnemyKilled" then
+			self:PlayEnemyKilled(payload)
+		elseif payload.Type == "KillExplosion" then
+			self:PlayKillExplosion(payload)
+		elseif payload.Type == "MutationApplied" then
+			self:PlayMutationApplied(payload)
 		end
 	end)
 end
@@ -92,6 +98,84 @@ function VFXController:PlayGravityPulse(payload)
 		if ring then
 			ring:Destroy()
 		end
+	end)
+end
+
+function VFXController:PlayKillExplosion(payload)
+	local origin = payload.Origin
+	local radius = payload.Radius or 10
+	local folder = Workspace:FindFirstChild("ClientEffects") or Workspace
+
+	local burst = Instance.new("Part")
+	burst.Name = "KillExplosionVFX"
+	burst.Shape = Enum.PartType.Ball
+	burst.Anchored = true
+	burst.CanCollide = false
+	burst.CanTouch = false
+	burst.CanQuery = false
+	burst.Material = Enum.Material.Neon
+	burst.Color = Color3.fromRGB(255, 70, 180)
+	burst.Transparency = 0.25
+	burst.Size = Vector3.new(1, 1, 1)
+	burst.Position = origin
+	burst.Parent = folder
+
+	local tween = game:GetService("TweenService"):Create(
+		burst,
+		TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{
+			Size = Vector3.new(radius * 2, radius * 2, radius * 2),
+			Transparency = 1,
+		}
+	)
+
+	tween:Play()
+	tween.Completed:Connect(function()
+		burst:Destroy()
+	end)
+end
+
+function VFXController:PlayMutationApplied(payload)
+	local userId = payload.UserId
+	local player = game:GetService("Players"):GetPlayerByUserId(userId)
+
+	if not player or not player.Character then
+		return
+	end
+
+	local root = player.Character:FindFirstChild("HumanoidRootPart")
+	if not root then
+		return
+	end
+
+	local folder = Workspace:FindFirstChild("ClientEffects") or Workspace
+
+	local aura = Instance.new("Part")
+	aura.Name = "MutationAppliedVFX"
+	aura.Shape = Enum.PartType.Ball
+	aura.Anchored = true
+	aura.CanCollide = false
+	aura.CanTouch = false
+	aura.CanQuery = false
+	aura.Material = Enum.Material.Neon
+	aura.Color = Color3.fromRGB(120, 255, 210)
+	aura.Transparency = 0.35
+	aura.Size = Vector3.new(3, 3, 3)
+	aura.Position = root.Position
+	aura.Parent = folder
+
+	local tween = game:GetService("TweenService"):Create(
+		aura,
+		TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+		{
+			Size = Vector3.new(9, 9, 9),
+			Transparency = 1,
+		}
+	)
+
+	tween:Play()
+	tween.Completed:Connect(function()
+		aura:Destroy()
 	end)
 end
 
