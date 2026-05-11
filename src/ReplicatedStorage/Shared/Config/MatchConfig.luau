@@ -1,5 +1,5 @@
 return {
-	MatchDuration = 180,
+	MatchDuration = 15, --180
 	MaxPlayersPerMatch = 8,
 
 	EnemySpawnInterval = 3,

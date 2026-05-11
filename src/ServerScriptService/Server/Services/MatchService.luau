@@ -1,6 +1,178 @@
-local Service = {}
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-function Service:Init() end
-function Service:Start() end
+local MatchConfig = require(ReplicatedStorage.Shared.Config.MatchConfig)
+local Net = require(ReplicatedStorage.Shared.Net.Net)
 
-return Service
+local MatchService = {}
+
+local MatchState = {
+	Waiting = "Waiting",
+	Running = "Running",
+	Ending = "Ending",
+}
+
+local currentState = MatchState.Waiting
+local matchStartedAt = 0
+local playerStates = {}
+
+function MatchService:Init()
+	print("[MatchService] Init")
+end
+
+function MatchService:Start()
+	print("[MatchService] Start")
+
+	task.spawn(function()
+		while true do
+			if currentState == MatchState.Waiting and #Players:GetPlayers() > 0 then
+				task.wait(5)
+
+				if currentState == MatchState.Waiting and #Players:GetPlayers() > 0 then
+					self:StartMatch()
+				end
+			end
+
+			task.wait(1)
+		end
+	end)
+end
+
+function MatchService:StartMatch()
+	print("[MatchService] Starting match")
+
+	currentState = MatchState.Running
+	matchStartedAt = os.clock()
+	playerStates = {}
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		self:CreatePlayerState(player)
+	end
+
+	Net:FireAllClients("MatchStateUpdate", {
+		State = currentState,
+		Duration = MatchConfig.MatchDuration,
+		StartedAt = matchStartedAt,
+	})
+
+	task.spawn(function()
+		self:RunMatchLoop()
+	end)
+end
+
+function MatchService:CreatePlayerState(player)
+	playerStates[player] = {
+		Player = player,
+		UserId = player.UserId,
+
+		Core = "Gravity",
+
+		MaxHealth = 100,
+		Health = 100,
+
+		Kills = 0,
+		DamageDealt = 0,
+		CellsEarned = 0,
+
+		Abilities = {
+			GravityPulse = {
+				Id = "GravityPulse",
+				CooldownEndsAt = 0,
+			}
+		},
+
+		Mutations = {},
+		Modifiers = {},
+		Effects = {},
+
+		IsAlive = true,
+	}
+end
+
+function MatchService:RunMatchLoop()
+	while currentState == MatchState.Running do
+		local elapsed = os.clock() - matchStartedAt
+		local remaining = math.max(0, MatchConfig.MatchDuration - elapsed)
+
+		Net:FireAllClients("HUDUpdate", {
+			TimeRemaining = remaining,
+			MatchState = currentState,
+		})
+
+		if elapsed >= MatchConfig.MatchDuration then
+			self:EndMatch()
+			break
+		end
+
+		task.wait(1)
+	end
+end
+
+function MatchService:EndMatch()
+	if currentState ~= MatchState.Running then
+		return
+	end
+
+	print("[MatchService] Ending match")
+    
+    local EnemyService = require(script.Parent.EnemyService)
+
+    EnemyService:ClearEnemies()
+
+	currentState = MatchState.Ending
+
+	local RewardService = require(script.Parent.RewardService)
+
+	for player, state in pairs(playerStates) do
+		if player and player.Parent == Players then
+			RewardService:GrantMatchReward(player, state)
+		end
+	end
+
+	Net:FireAllClients("MatchStateUpdate", {
+		State = currentState,
+	})
+
+	task.wait(8)
+
+	currentState = MatchState.Waiting
+	playerStates = {}
+
+	print("[MatchService] Back to waiting")
+end
+
+function MatchService:GetPlayerState(player)
+	return playerStates[player]
+end
+
+function MatchService:GetAllPlayerStates()
+	return playerStates
+end
+
+function MatchService:IsMatchRunning()
+	return currentState == MatchState.Running
+end
+
+function MatchService:AddKill(player)
+	local state = self:GetPlayerState(player)
+	if not state then return end
+
+	state.Kills += 1
+	state.CellsEarned += MatchConfig.CellsPerKill
+end
+
+function MatchService:AddDamage(player, amount)
+	local state = self:GetPlayerState(player)
+	if not state then return end
+
+	state.DamageDealt += amount
+end
+
+function MatchService:SetPlayerAlive(player, isAlive)
+	local state = self:GetPlayerState(player)
+	if not state then return end
+
+	state.IsAlive = isAlive
+end
+
+return MatchService
