@@ -23,18 +23,25 @@ end
 function MatchService:Start()
 	print("[MatchService] Start")
 
-	task.spawn(function()
-		while true do
-			if currentState == MatchState.Waiting and #Players:GetPlayers() > 0 then
-				task.wait(5)
+	-- task.spawn(function()
+	-- 	while true do
+	-- 		if currentState == MatchState.Waiting and #Players:GetPlayers() > 0 then
+	-- 			task.wait(5)
 
-				if currentState == MatchState.Waiting and #Players:GetPlayers() > 0 then
-					self:StartMatch()
-				end
-			end
+	-- 			if currentState == MatchState.Waiting and #Players:GetPlayers() > 0 then
+	-- 				self:StartMatch()
+	-- 			end
+	-- 		end
 
-			task.wait(1)
-		end
+	-- 		task.wait(1)
+	-- 	end
+	-- end)
+
+	Net:OnServerEvent('RequestStartMatch', function(player)
+		if self:IsMatchRunning() then return end
+
+		print(player.Name .. 'Started the match!')
+		self:StartMatch()
 	end)
 end
 

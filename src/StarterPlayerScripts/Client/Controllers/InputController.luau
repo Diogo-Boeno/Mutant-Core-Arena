@@ -1,3 +1,5 @@
+local Players = game:GetService("Players")
+local ServerScriptService = game:GetService("ServerScriptService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -25,6 +27,7 @@ function InputController:Start()
 	end)
 
 	self:CreateMobileButton()
+	self:SetupStartMatchButton()
 end
 
 function InputController:UseMainAbility()
@@ -60,6 +63,19 @@ function InputController:CreateMobileButton()
 
 	abilityButton.MouseButton1Click:Connect(function()
 		self:UseMainAbility()
+	end)
+end
+
+function InputController:SetupStartMatchButton()
+	local player = Players.LocalPlayer
+	local playerGui = player:WaitForChild("PlayerGui")
+	local StartMatchUI = playerGui:WaitForChild("StartMatchUI")
+
+	StartMatchUI.ReadyButtonBG.Button.Activated:Connect(function()
+		print('[InputController] Solicitando start match...')
+		Net:FireServer('RequestStartMatch')
+
+		StartMatchUI.Enabled = false
 	end)
 end
 

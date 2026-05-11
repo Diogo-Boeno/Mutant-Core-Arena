@@ -13,6 +13,10 @@ function Net:FireClient(player, remoteName, ...)
 	self:GetRemote(remoteName):FireClient(player, ...)
 end
 
+function Net:FireServer(remoteName, ...)
+    self:GetRemote(remoteName):FireServer(...)
+end
+
 function Net:FireAllClients(remoteName, ...)
 	self:GetRemote(remoteName):FireAllClients(...)
 end
