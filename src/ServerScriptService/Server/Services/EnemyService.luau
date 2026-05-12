@@ -1,3 +1,4 @@
+local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -48,16 +49,19 @@ function EnemyService:SpawnLoop()
 
 	local aliveCount = self:GetAliveEnemyCount()
 
-	if aliveCount >= MatchConfig.MaxEnemiesAlive then
+	local MaxEnemies = MatchConfig.MaxEnemiesAlive()
+
+	if aliveCount >= MaxEnemies then
 		return
 	end
 
 	local amountToSpawn = math.clamp(
-		MatchConfig.MaxEnemiesAlive - aliveCount,
+		MaxEnemies - aliveCount,
 		1,
 		3
 	)
-
+	print(MaxEnemies)
+	
 	for _ = 1, amountToSpawn do
 		self:SpawnEnemy("BasicMutant")
 	end

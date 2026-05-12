@@ -77,11 +77,17 @@ function InputController:SetupStartMatchButton()
 	local playerGui = player:WaitForChild("PlayerGui")
 	local StartMatchUI = playerGui:WaitForChild("StartMatchUI")
 
+	local TimeHUD = playerGui:WaitForChild('Timer')
+
+	if not StartMatchUI.Enabled then StartMatchUI.Enabled = true end
+
 	StartMatchUI.ReadyButtonBG.Button.Activated:Connect(function()
 		print('[InputController] Solicitando start match...')
 		Net:FireServer('RequestStartMatch')
 
+		
 		StartMatchUI.Enabled = false
+		TimeHUD.Enabled = true
 	end)
 end
 

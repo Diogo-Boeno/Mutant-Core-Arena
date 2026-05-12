@@ -107,6 +107,7 @@ function MatchService:RunMatchLoop()
 		local elapsed = os.clock() - matchStartedAt
 		local remaining = math.max(0, MatchConfig.MatchDuration - elapsed)
 
+		-- Set payload
 		Net:FireAllClients("HUDUpdate", {
 			Type = "Timer",
 			TimeRemaining = remaining,
@@ -126,6 +127,11 @@ function MatchService:RunMatchLoop()
 		end
 
 		if elapsed >= MatchConfig.MatchDuration then
+			Net:FireAllClients('HUDUpdate', {
+				Type = 'Timer',
+				State = MatchState.Ending,
+				TimeRemaining = 0,
+			})
 			self:EndMatch()
 			break
 		end
@@ -154,6 +160,12 @@ function MatchService:EndMatch()
 			RewardService:GrantMatchReward(player, state)
 		end
 	end
+
+	Net:FireAllClients("HUDUpdate", {
+		Type = 'Timer',
+		TimeRemaining = 0,
+		State = currentState,
+	}) -- tirar o timer
 
 	Net:FireAllClients("MatchStateUpdate", {
 		State = currentState,
