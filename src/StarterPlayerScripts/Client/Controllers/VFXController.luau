@@ -37,6 +37,7 @@ function VFXController:PlayGravityPulse(payload)
 	local radius = payload.Radius or 20
 
 	local folder = Workspace:FindFirstChild("ClientEffects") or Workspace
+	local modelTest = Workspace:FindFirstChild('Bubbles')
 
 	local sphere = Instance.new("Part")
 	sphere.Name = "GravityPulseVFX"
@@ -82,6 +83,7 @@ function VFXController:PlayGravityPulse(payload)
 	ring.Size = Vector3.new(0.2, 1, 1)
 	ring.CFrame = CFrame.new(origin) * CFrame.Angles(0, 0, math.rad(90))
 	ring.Parent = folder
+
 
 	local ringTween = TweenService:Create(
 		ring,
