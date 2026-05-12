@@ -30,3 +30,4 @@ function Net:OnClientEvent(remoteName, callback)
 end
 
 return Net
+
