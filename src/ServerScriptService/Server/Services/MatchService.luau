@@ -68,32 +68,53 @@ function MatchService:StartMatch()
 end
 
 function MatchService:CreatePlayerState(player)
-	playerStates[player] = {
+	local selectedCore = "Gravity"
+	local AbilityConfig = require(game.ReplicatedStorage.Shared.Config.AbilityConfig)
+
+	local abilities = {}
+	for _, ability in pairs(AbilityConfig) do
+		if ability.Core == selectedCore then
+			abilities[ability.Id] = {
+				Id = ability.Id,
+				CooldownEndsAt = 0,
+				BaseCooldown = ability.Cooldown,
+			}
+		end
+	end
+
+	local state = {
 		Player = player,
 		UserId = player.UserId,
-
-		Core = "Gravity",
-
+		Core = selectedCore,
 		MaxHealth = 100,
 		Health = 100,
-
 		Kills = 0,
 		DamageDealt = 0,
 		CellsEarned = 0,
-
-		Abilities = {
-			GravityPulse = {
-				Id = "GravityPulse",
-				CooldownEndsAt = 0,
-			}
-		},
-
+		Abilities = abilities,
 		Mutations = {},
 		Modifiers = {},
 		Effects = {},
-
 		IsAlive = true,
 	}
+
+	playerStates[player] = state
+
+	local abilityList = {}
+	local sortedIds = {}
+	for abilityId, _ in pairs(state.Abilities) do
+		table.insert(sortedIds, abilityId)
+	end
+	table.sort(sortedIds)
+
+	for i, id in ipairs(sortedIds) do
+		abilityList[i] = {
+			Id = id,
+			Color = nil,
+		}
+	end
+
+	Net:FireClient(player, "AbilitiesUpdate", abilityList)
 end
 
 function MatchService:AddCellsEarned(player, reward)

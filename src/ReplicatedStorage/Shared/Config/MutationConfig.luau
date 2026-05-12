@@ -9,7 +9,8 @@ return {
 		Weight = 40,
 
 		Modifiers = {
-			GravityPulseRadiusMultiplier = 0.25,
+			-- GravityPulseRadiusMultiplier = 0.25,
+			AreaRadius = 0.25
 		}
 	},
 

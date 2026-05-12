@@ -41,69 +41,69 @@ function CombatService:GetEnemiesInRadius(origin, radius, maxTargets)
 	return results
 end
 
-function CombatService:ExecuteGravityPulse(player, state, origin, stats)
-	local enemies = self:GetEnemiesInRadius(origin, stats.Radius, stats.MaxTargets)
+-- function CombatService:ExecuteGravityPulse(player, state, origin, stats)
+-- 	local enemies = self:GetEnemiesInRadius(origin, stats.Radius, stats.MaxTargets)
 
-	local hitCount = 0
+-- 	local hitCount = 0
 
-	for _, enemy in ipairs(enemies) do
-		local didDamage = self:ApplyDamage(player, enemy, stats.Damage, "Gravity")
+-- 	for _, enemy in ipairs(enemies) do
+-- 		local didDamage = self:ApplyDamage(player, enemy, stats.Damage, "Gravity")
 
-		if didDamage then
-			hitCount += 1
-			self:ApplyPull(enemy, origin, stats.PullForce)
-		end
-	end
+-- 		if didDamage then
+-- 			hitCount += 1
+-- 			self:ApplyPull(enemy, origin, stats.PullForce)
+-- 		end
+-- 	end
 
-	Net:FireAllClients("ClientVFX", {
-		Type = "GravityPulse",
-		UserId = player.UserId,
-		Origin = origin,
-		Radius = stats.Radius,
-		HitCount = hitCount,
-	})
+-- 	Net:FireAllClients("ClientVFX", {
+-- 		Type = "GravityPulse",
+-- 		UserId = player.UserId,
+-- 		Origin = origin,
+-- 		Radius = stats.Radius,
+-- 		HitCount = hitCount,
+-- 	})
 
-	if state.Effects.DoublePulse then
-		task.delay(0.45, function()
-			local secondEnemies = self:GetEnemiesInRadius(origin, stats.Radius * 0.7, stats.MaxTargets)
-			local secondHitCount = 0
+-- 	if state.Effects.DoublePulse then
+-- 		task.delay(0.45, function()
+-- 			local secondEnemies = self:GetEnemiesInRadius(origin, stats.Radius * 0.7, stats.MaxTargets)
+-- 			local secondHitCount = 0
 
-			for _, enemy in ipairs(secondEnemies) do
-				local didDamage = self:ApplyDamage(player, enemy, stats.Damage * 0.45, "Gravity")
+-- 			for _, enemy in ipairs(secondEnemies) do
+-- 				local didDamage = self:ApplyDamage(player, enemy, stats.Damage * 0.45, "Gravity")
 
-				if didDamage then
-					secondHitCount += 1
-					self:ApplyPull(enemy, origin, stats.PullForce * 0.55)
-				end
-			end
+-- 				if didDamage then
+-- 					secondHitCount += 1
+-- 					self:ApplyPull(enemy, origin, stats.PullForce * 0.55)
+-- 				end
+-- 			end
 
-			Net:FireAllClients("ClientVFX", {
-				Type = "GravityPulse",
-				UserId = player.UserId,
-				Origin = origin,
-				Radius = stats.Radius * 0.7,
-				HitCount = secondHitCount,
-				IsSecondary = true,
-			})
-		end)
-	end
-end
+-- 			Net:FireAllClients("ClientVFX", {
+-- 				Type = "GravityPulse",
+-- 				UserId = player.UserId,
+-- 				Origin = origin,
+-- 				Radius = stats.Radius * 0.7,
+-- 				HitCount = secondHitCount,
+-- 				IsSecondary = true,
+-- 			})
+-- 		end)
+-- 	end
+-- end
 
-function CombatService:TriggerKillExplosion(player, origin)
-	local radius = 10
-	local damage = 18
-	local enemies = self:GetEnemiesInRadius(origin, radius, 10)
+-- function CombatService:TriggerKillExplosion(player, origin)
+-- 	local radius = 10
+-- 	local damage = 18
+-- 	local enemies = self:GetEnemiesInRadius(origin, radius, 10)
 
-	for _, enemy in ipairs(enemies) do
-		self:ApplyDamage(player, enemy, damage, "GravityExplosion")
-	end
+-- 	for _, enemy in ipairs(enemies) do
+-- 		self:ApplyDamage(player, enemy, damage, "GravityExplosion")
+-- 	end
 
-	Net:FireAllClients("ClientVFX", {
-		Type = "KillExplosion",
-		Origin = origin,
-		Radius = radius,
-	})
-end
+-- 	Net:FireAllClients("ClientVFX", {
+-- 		Type = "KillExplosion",
+-- 		Origin = origin,
+-- 		Radius = radius,
+-- 	})
+-- end
 
 function CombatService:HandleEnemyKilled(player, enemy, damageType)
 	local MatchService = require(script.Parent.MatchService)

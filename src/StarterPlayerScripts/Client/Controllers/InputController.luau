@@ -5,9 +5,17 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Net = require(ReplicatedStorage.Shared.Net.Net)
 local UIStyle = require(script.Parent:WaitForChild('UIStyle'))
-local KeyMapping = require(ReplicatedStorage:WaitForChild('Shared'):WaitForChild('Config'):WaitForChild('InputsConfig'))
+local InputsConfig = require(ReplicatedStorage:WaitForChild('Shared'):WaitForChild('Config'):WaitForChild('InputsConfig'))
 
 local InputController = {}
+local abilityButtonTemplate = ReplicatedStorage:WaitForChild('UI'):WaitForChild('AbilityButtonTemplate')
+
+local player = Players.LocalPlayer
+local screenGui = player:WaitForChild('PlayerGui'):WaitForChild('MutantCoreHUD')
+local abilitiesFrame = screenGui:WaitForChild('AbilitiesFrame')
+
+local currentAbilities = {}
+local slotButtons = {}
 
 function InputController:Init()
 	print("[InputController] Init")
@@ -16,20 +24,13 @@ end
 function InputController:Start()
 	print("[InputController] Start")
 
-	-- UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	-- 	if gameProcessed then
-	-- 		return
-	-- 	end
-
-	-- 	for _, config  in ipairs(KeyMapping) do
-	-- 		if input.KeyCode == config.Key then
-	-- 			-- a
-	-- 		end
-	-- 	end
-	-- end)
-
 	self:SetupInputs()
-	self:SetUpAbilities()
+
+	Net:OnClientEvent('AbilitiesUpdate', function(abilityList)
+		self:UpdateAbilityButtons(abilityList)
+	end)
+
+	-- self:SetUpAbilities()
 
 	self:SetupStartMatchButton()
 end
@@ -40,31 +41,76 @@ function InputController:SetupInputs()
 			return
 		end
 
-		local keyName = input.KeyCode.Name
-		local mapping = KeyMapping[keyName]
-
-		if mapping then
-			self:UseAbility(mapping.AbilityId)
+		for _, slotConfig in ipairs(InputsConfig) do
+			if input.KeyCode == slotConfig.Key then
+				local abilityId = self:GetAbilityForSlot(slotConfig.Slot)
+				if abilityId then
+					self:UseAbility(abilityId)
+				end
+				break
+			end
 		end
 	end)
 end
 
-function InputController:SetUpAbilities()
-	local player = Players.LocalPlayer
-	local screenGui = player:WaitForChild('PlayerGui'):WaitForChild('MutantCoreHUD')
+function InputController:GetAbilityForSlot(slot)
+	return currentAbilities[slot]
+end
 
-	for keyName, config in pairs(KeyMapping) do
-		local button = screenGui:FindFirstChild(config.AbilityId)
+function InputController:UpdateAbilityButtons(abilityList)
+	for _, btn in pairs(slotButtons) do
+		btn:Destroy()
+	end
 
-		if button and button:IsA('TextButton') then
-			UIStyle:ApplyAbilityStyle(button, config.Color)
-			button.Text = string.format('%s\n[%s]', config.AbilityId:upper(), keyName)
-			button.MouseButton1Click:Connect(function()
-				self:UseAbility(config.Id)
-			end)
+	slotButtons = {}
+	currentAbilities = {}
+
+	for _, slotConfig in ipairs(InputsConfig) do
+		local slotIndex = slotConfig.Slot
+		local abilityData = abilityList[slotIndex]
+		if not abilityData then continue end
+
+		currentAbilities[slotIndex] = abilityData.Id
+
+		-- local button = Instance.new('TextButton')
+		local button = abilityButtonTemplate:Clone()
+		button.Name = abilityData.Id
+
+		button.Text = abilityData.Id:upper()
+
+		local keyLabel = button:FindFirstChild('KeyLabel')
+		if keyLabel then
+			keyLabel.Text = slotConfig.Key.Name
 		end
+		
+		local color = abilityData.Color or slotConfig.DefaultColor
+		UIStyle:ApplyAbilityStyle(button, color)
+
+		button.MouseButton1Click:Connect(function()
+			self:UseAbility(abilityData.Id)
+		end)
+
+		button.Parent = abilitiesFrame
+		table.insert(slotButtons, button)
 	end
 end
+
+-- function InputController:SetUpAbilities()
+-- 	local player = Players.LocalPlayer
+-- 	local screenGui = player:WaitForChild('PlayerGui'):WaitForChild('MutantCoreHUD')
+
+-- 	for keyName, config in pairs(KeyMapping) do
+-- 		local button = screenGui:FindFirstChild(config.AbilityId)
+
+-- 		if button and button:IsA('TextButton') then
+-- 			UIStyle:ApplyAbilityStyle(button, config.Color)
+-- 			button.Text = string.format('%s\n[%s]', config.AbilityId:upper(), keyName)
+-- 			button.MouseButton1Click:Connect(function()
+-- 				self:UseAbility(config.Id)
+-- 			end)
+-- 		end
+-- 	end
+-- end
 
 function InputController:UseAbility(abilityId)
 	Net:GetRemote('AbilityRequest'):FireServer(abilityId)
