@@ -4,7 +4,7 @@ return {
 	GravityPulse = {
 		Id = "GravityPulse",
 		Core = "Gravity",
-		Cooldown = 4,
+		Cooldown = 1,
 		Radius = 14,
 		Damage = 20,
 		PullForce = 65,
