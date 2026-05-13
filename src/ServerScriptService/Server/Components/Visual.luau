@@ -6,7 +6,7 @@ function Visual:Execute(player, state, comp, origin)
 	if not comp.VFX then return end
 
 	Net:FireAllClients("ClientVFX", {
-		Type = comp.VFX,
+		AbilityId = comp.VFX,
 		UserId = player.UserId,
 		Origin = origin,
 		CameraShake = comp.CameraShake,

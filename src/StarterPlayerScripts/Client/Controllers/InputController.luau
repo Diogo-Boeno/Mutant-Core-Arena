@@ -44,7 +44,7 @@ function InputController:Start()
 		if data.Type == 'AbilityUsed' then
 			self:StartCooldown(data.AbilityId, data.Cooldown)
 
-			self:PlayAbilityShake(data.AbilityId)
+			-- self:PlayAbilityShake(data.AbilityId)
 		elseif data.Type == 'AbilityCooldown' then
 			self:SetCooldownRemaining(data.AbilityId, data.Remaining)
 		end

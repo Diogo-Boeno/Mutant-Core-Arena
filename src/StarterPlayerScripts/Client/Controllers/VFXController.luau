@@ -1,190 +1,156 @@
-local TweenService = game:GetService("TweenService")
-local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Debris = game:GetService("Debris")
 local Net = require(ReplicatedStorage.Shared.Net.Net)
 
-local GravityPulseVFXTemplate = ReplicatedStorage.Assets:WaitForChild('VFX'):WaitForChild('GravityPulse'):WaitForChild('DistortionSphere')
-
 local VFXController = {}
+local vfxRoot = ReplicatedStorage:WaitForChild("Assets"):WaitForChild("VFX")
+
+-- Cache automático: salva pastas já encontradas
+local folderCache = {}
 
 function VFXController:Init()
-	print("[VFXController] Init")
-
-	if not Workspace:FindFirstChild("ClientEffects") then
-		local folder = Instance.new("Folder")
-		folder.Name = "ClientEffects"
-		folder.Parent = Workspace
-	end
+    print("[VFXController] Init")
+    Net:OnClientEvent("ClientVFX", function(data)
+        self:ExecuteVFX(data)
+    end)
 end
 
-function VFXController:Start()
-	print("[VFXController] Start")
-
-	Net:OnClientEvent("ClientVFX", function(payload)
-		if payload.Type == "GravityPulse" then
-			self:PlayGravityPulse(payload)
-		elseif payload.Type == "EnemyKilled" then
-			self:PlayEnemyKilled(payload)
-		elseif payload.Type == "KillExplosion" then
-			self:PlayKillExplosion(payload)
-		elseif payload.Type == "MutationApplied" then
-			self:PlayMutationApplied(payload)
-		end
-	end)
+-- Encontra a pasta da habilidade automaticamente (com cache)
+function VFXController:GetAbilityFolder(abilityId)
+    if folderCache[abilityId] then return folderCache[abilityId] end
+    
+    local folder = vfxRoot:FindFirstChild(abilityId)
+    if not folder then
+        warn("[VFXController] Pasta VFX não encontrada para:", abilityId)
+        return nil
+    end
+    folderCache[abilityId] = folder
+    return folder
 end
 
-function VFXController:PlayGravityPulse(payload)
-	local origin = payload.Origin
-	local radius = payload.Radius or 20
-
-	local folder = Workspace:FindFirstChild("ClientEffects") or Workspace
-	local modelTest = Workspace:FindFirstChild('Bubbles')
-
-	-- local sphere = Instance.new("Part")
-	local sphere = GravityPulseVFXTemplate:Clone()
-	sphere.Name = "GravityPulseVFX"
-	-- sphere.Shape = Enum.PartType.Ball
-	sphere.Anchored = true
-	sphere.CanCollide = false
-	sphere.CanTouch = false
-	sphere.CanQuery = false
-	-- sphere.Material = Enum.Material.Neon
-	sphere.Color = Color3.fromRGB(120, 40, 255)
-	-- sphere.Transparency = 0.45
-	sphere.Size = Vector3.new(1, 1, 1)
-	sphere.Position = origin
-	sphere.Parent = folder:WaitForChild('Grav')
-	-- sphere.Parent = folder
-
-
-	local expandTween = TweenService:Create(
-		sphere,
-		TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{
-			Size = Vector3.new(radius * 2, radius * 2, radius * 2),
-			Transparency = 1,
-		}
-	)
-
-	expandTween:Play()
-
-	expandTween.Completed:Connect(function()
-		if sphere then
-			sphere:Destroy()
-		end
-	end)
-
-	local ring = Instance.new("Part")
-	ring.Name = "GravityPulseRing"
-	ring.Shape = Enum.PartType.Cylinder
-	ring.Anchored = true
-	ring.CanCollide = false
-	ring.CanTouch = false
-	ring.CanQuery = false
-	ring.Material = Enum.Material.Neon
-	ring.Color = Color3.fromRGB(170, 80, 255)
-	ring.Transparency = 0.25
-	ring.Size = Vector3.new(0.2, 1, 1)
-	ring.CFrame = CFrame.new(origin) * CFrame.Angles(0, 0, math.rad(90))
-	ring.Parent = folder
-
-
-	local ringTween = TweenService:Create(
-		ring,
-		TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{
-			Size = Vector3.new(0.2, radius * 2, radius * 2),
-			Transparency = 1,
-		}
-	)
-
-	ringTween:Play()
-
-	ringTween.Completed:Connect(function()
-		if ring then
-			ring:Destroy()
-		end
-	end)
+local function getMainPart(model)
+    -- Se o modelo já tem PrimaryPart, use-o
+    if model.PrimaryPart then
+        return model.PrimaryPart
+    end
+    
+    -- Caso contrário, pega a maior BasePart
+    local largest
+    for _, part in ipairs(model:GetDescendants()) do
+        if part:IsA("BasePart") then
+            if not largest or part.Size.Magnitude > largest.Size.Magnitude then
+                largest = part
+            end
+        end
+    end
+    
+    if largest then
+        model.PrimaryPart = largest  -- Define para uso futuro
+    end
+    return largest
 end
 
-function VFXController:PlayKillExplosion(payload)
-	local origin = payload.Origin
-	local radius = payload.Radius or 10
-	local folder = Workspace:FindFirstChild("ClientEffects") or Workspace
+-- Função principal que todo evento chama
+function VFXController:ExecuteVFX(data)
+    print("[VFXController] ExecuteVFX data:", data, type(data))
+    if type(data) == "table" then
+        print("  AbilityId:", data.AbilityId)
+    end
 
-	local burst = Instance.new("Part")
-	burst.Name = "KillExplosionVFX"
-	burst.Shape = Enum.PartType.Ball
-	burst.Anchored = true
-	burst.CanCollide = false
-	burst.CanTouch = false
-	burst.CanQuery = false
-	burst.Material = Enum.Material.Neon
-	burst.Color = Color3.fromRGB(255, 70, 180)
-	burst.Transparency = 0.25
-	burst.Size = Vector3.new(1, 1, 1)
-	burst.Position = origin
-	burst.Parent = folder
+    local folder = self:GetAbilityFolder(data.AbilityId)
+    if not folder then return end
 
-	local tween = game:GetService("TweenService"):Create(
-		burst,
-		TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{
-			Size = Vector3.new(radius * 2, radius * 2, radius * 2),
-			Transparency = 1,
-		}
-	)
+    
+    local model = folder:FindFirstChildWhichIsA('Model')
+    if not model then
+        warn("[VFXController] Model não encontrado na pasta:", data.AbilityId)
+        return
+    end
 
-	tween:Play()
-	tween.Completed:Connect(function()
-		burst:Destroy()
-	end)
+    local effectClone = model:Clone()
+    effectClone:SetPrimaryPartCFrame(CFrame.new(data.Origin))
+    effectClone.Parent = workspace
+
+    -- Ativa todos os ParticleEmitters automaticamente
+    for _, emitter in ipairs(effectClone:GetDescendants()) do
+        if emitter:IsA("ParticleEmitter") then
+            emitter:Emit(emitter:GetAttribute("EmitCount") or 20)
+        elseif emitter:IsA("PointLight") then
+            emitter.Brightness = 10
+            TweenService:Create(emitter, TweenInfo.new(0.5), {Brightness = 0}):Play()
+        end
+    end
+
+    -- Aplica o comportamento visual baseado no VFXType
+    if data.VFXType == "ExpandingArea" then
+        self:ApplyExpandingArea(effectClone, data)
+    elseif data.VFXType == "Projectile" then
+        self:ApplyProjectile(effectClone, data)
+    elseif data.VFXType == "SelfBuff" then
+        self:ApplySelfBuff(effectClone, data)
+    end
+
+    -- Limpeza automática após duração
+    local duration = data.VFXDuration or 1
+    Debris:AddItem(effectClone, duration + 0.5)
 end
 
-function VFXController:PlayMutationApplied(payload)
-	local userId = payload.UserId
-	local player = game:GetService("Players"):GetPlayerByUserId(userId)
+-- Comportamento de área expansiva
+function VFXController:ApplyExpandingArea(clone, data)
+    local mainPart = getMainPart(clone)
+    if mainPart then
+        local startSize = mainPart.Size
+        local targetSize = startSize * (data.VFXScale or 2)
+        TweenService:Create(mainPart, TweenInfo.new(data.VFXDuration or 0.8), {
+            Size = targetSize,
+            Transparency = 1
+        }):Play()
+    end
+end
 
-	if not player or not player.Character then
-		return
-	end
+-- Comportamento de projétil
+function VFXController:ApplyProjectile(clone, data)
+    local character = self:GetCharacter(data.UserId)
+    if not character then return end
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
 
-	local root = player.Character:FindFirstChild("HumanoidRootPart")
-	if not root then
-		return
-	end
+    local direction = root.CFrame.LookVector
+    local speed = data.ProjectileSpeed or 80
 
-	local folder = Workspace:FindFirstChild("ClientEffects") or Workspace
+    local conn
+    conn = RunService.Heartbeat:Connect(function(dt)
+        if not clone.Parent then
+            conn:Disconnect()
+            return
+        end
+        clone:PivotTo(clone:GetPivot() + direction * speed * dt)
+    end)
+end
 
-	local aura = Instance.new("Part")
-	aura.Name = "MutationAppliedVFX"
-	aura.Shape = Enum.PartType.Ball
-	aura.Anchored = true
-	aura.CanCollide = false
-	aura.CanTouch = false
-	aura.CanQuery = false
-	aura.Material = Enum.Material.Neon
-	-- aura.Color = Color3.fromRGB(120, 255, 210)
-	aura.Color = Color3.fromRGB(251, 255, 147)
-	aura.Transparency = 0.35
-	aura.Size = Vector3.new(3, 3, 3)
-	aura.Position = root.Position
-	aura.Parent = folder
+-- Comportamento de buff no jogador
+function VFXController:ApplySelfBuff(clone, data)
+    local character = self:GetCharacter(data.UserId)
+    if not character then return end
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
 
-	local tween = game:GetService("TweenService"):Create(
-		aura,
-		TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-		{
-			Size = Vector3.new(9, 9, 9),
-			Transparency = 1,
-		}
-	)
+    -- Gruda o efeito no jogador
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = root
+    weld.Part1 = clone:FindFirstChildWhichIsA("BasePart") or clone.PrimaryPart
+    weld.Parent = clone
+end
 
-	tween:Play()
-	tween.Completed:Connect(function()
-		aura:Destroy()
-	end)
+function VFXController:GetCharacter(userId)
+    for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
+        if player.UserId == userId and player.Character then
+            return player.Character
+        end
+    end
+    return nil
 end
 
 return VFXController
