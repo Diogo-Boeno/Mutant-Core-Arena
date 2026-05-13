@@ -1,11 +1,13 @@
 local Players = game:GetService("Players")
-local ServerScriptService = game:GetService("ServerScriptService")
 local UserInputService = game:GetService("UserInputService")
+local ServerScriptService = game:GetService("ServerScriptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService('TweenService')
 
 local Net = require(ReplicatedStorage.Shared.Net.Net)
 local UIStyle = require(script.Parent:WaitForChild('UIStyle'))
 local InputsConfig = require(ReplicatedStorage:WaitForChild('Shared'):WaitForChild('Config'):WaitForChild('InputsConfig'))
+local CORE_COLORS = require(script.Parent:WaitForChild('CoreColors'))
 
 local InputController = {}
 local abilityButtonTemplate = ReplicatedStorage:WaitForChild('UI'):WaitForChild('AbilityButtonTemplate')
@@ -16,6 +18,11 @@ local abilitiesFrame = screenGui:WaitForChild('AbilitiesFrame')
 
 local currentAbilities = {}
 local slotButtons = {}
+local cooldownFrames = {}
+local cooldownEndTimes = {}
+local cooldownCompletedConns = {}
+local cooldownTweens = {}
+local COOLDOWN_TWEEN_INFO = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.In)
 
 function InputController:Init()
 	print("[InputController] Init")
@@ -25,14 +32,19 @@ function InputController:Start()
 	print("[InputController] Start")
 
 	self:SetupInputs()
+	self:SetupStartMatchButton()
 
 	Net:OnClientEvent('AbilitiesUpdate', function(abilityList)
 		self:UpdateAbilityButtons(abilityList)
 	end)
-
-	-- self:SetUpAbilities()
-
-	self:SetupStartMatchButton()
+	
+	Net:OnClientEvent('HUDUpdate', function(data)
+		if data.Type == 'AbilityUsed' then
+			self:StartCooldown(data.AbilityId, data.Cooldown)
+		elseif data.Type == 'AbilityCooldown' then
+			self:SetCooldownRemaining(data.AbilityId, data.Remaining)
+		end
+	end)
 end
 
 function InputController:SetupInputs()
@@ -61,9 +73,14 @@ function InputController:UpdateAbilityButtons(abilityList)
 	for _, btn in pairs(slotButtons) do
 		btn:Destroy()
 	end
+	table.clear(slotButtons)
+	table.clear(currentAbilities)
+	table.clear(cooldownFrames)
 
-	slotButtons = {}
-	currentAbilities = {}
+	for _, tween in pairs(cooldownTweens) do
+		if tween then tween:Cancel() end
+	end
+	table.clear(cooldownTweens)
 
 	for _, slotConfig in ipairs(InputsConfig) do
 		local slotIndex = slotConfig.Slot
@@ -83,8 +100,20 @@ function InputController:UpdateAbilityButtons(abilityList)
 			keyLabel.Text = slotConfig.Key.Name
 		end
 		
-		local color = abilityData.Color or slotConfig.DefaultColor
+		local color = CORE_COLORS[abilityData.Core] or Color3.fromRGB(128, 128, 128)
 		UIStyle:ApplyAbilityStyle(button, color)
+
+		local cooldownOverlay = button:FindFirstChild('CooldownOverlay')
+		if cooldownOverlay and cooldownOverlay:IsA('Frame') then
+			cooldownOverlay.Visible = false
+			cooldownOverlay.Size = UDim2.new(1, 0, 1, 0)
+			cooldownOverlay.Position = UDim2.new(0, 0, 0.5, 0)
+			cooldownOverlay.BackgroundTransparency = 0.75
+			cooldownOverlay.BorderSizePixel = 0
+			cooldownOverlay.ZIndex = 5
+
+			cooldownFrames[abilityData.Id] = cooldownOverlay
+		end
 
 		button.MouseButton1Click:Connect(function()
 			self:UseAbility(abilityData.Id)
@@ -92,47 +121,92 @@ function InputController:UpdateAbilityButtons(abilityList)
 
 		button.Parent = abilitiesFrame
 		table.insert(slotButtons, button)
+
+
+		for _, conn in pairs(cooldownCompletedConns) do
+			conn:Disconnect()
+		end
+		table.clear(cooldownCompletedConns)
+		table.clear(cooldownEndTimes)
 	end
 end
 
--- function InputController:SetUpAbilities()
--- 	local player = Players.LocalPlayer
--- 	local screenGui = player:WaitForChild('PlayerGui'):WaitForChild('MutantCoreHUD')
-
--- 	for keyName, config in pairs(KeyMapping) do
--- 		local button = screenGui:FindFirstChild(config.AbilityId)
-
--- 		if button and button:IsA('TextButton') then
--- 			UIStyle:ApplyAbilityStyle(button, config.Color)
--- 			button.Text = string.format('%s\n[%s]', config.AbilityId:upper(), keyName)
--- 			button.MouseButton1Click:Connect(function()
--- 				self:UseAbility(config.Id)
--- 			end)
--- 		end
--- 	end
--- end
-
 function InputController:UseAbility(abilityId)
-	Net:GetRemote('AbilityRequest'):FireServer(abilityId)
+    if cooldownEndTimes[abilityId] and os.clock() < cooldownEndTimes[abilityId] then
+        return
+    end
+    Net:GetRemote('AbilityRequest'):FireServer(abilityId)
 end
 
--- function InputController:CreateMobileButton()
--- 	local Players = game:GetService("Players")
--- 	local player = Players.LocalPlayer
--- 	local playerGui = player:WaitForChild("PlayerGui")
+function InputController:StartCooldown(abilityId, duration)
+	local frame = cooldownFrames[abilityId]
+	if not frame then return end
 
--- 	local screenGui = playerGui:FindFirstChild("MutantCoreHUD")
+	cooldownEndTimes[abilityId] = os.clock() + duration
 
--- 	if not screenGui then
--- 		return
--- 	end
+	if cooldownCompletedConns[abilityId] then
+		cooldownCompletedConns[abilityId]:Disconnect()
+		cooldownCompletedConns[abilityId] = nil
+	end
 
--- 	local abilityButton = screenGui:WaitForChild('GravityPulseButton')
+	if cooldownTweens[abilityId] then
+		cooldownTweens[abilityId]:Cancel()
+	end
 
--- 	abilityButton.MouseButton1Click:Connect(function()
--- 		self:UseMainAbility()
--- 	end)
--- end
+	frame.Size = UDim2.new(1, 0, 1, 0)
+	frame.Visible = true
+	frame.BackgroundTransparency = 0.2
+
+	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+	local targetSize = UDim2.new(0, 0, 1, 0)
+	local tween = TweenService:Create(frame, tweenInfo, { Size = targetSize })
+
+	cooldownCompletedConns[abilityId] = tween.Completed:Connect(function()
+		frame.Visible = false
+		cooldownTweens[abilityId] = nil
+		cooldownCompletedConns[abilityId] = nil
+	end)
+
+	tween:Play()
+	cooldownTweens[abilityId] = tween
+end
+
+function InputController:SetCooldownRemaining(abilityId, remaining)
+	local frame = cooldownFrames[abilityId]
+	if not frame then return end
+
+	if cooldownCompletedConns[abilityId] then
+		cooldownCompletedConns[abilityId]:Disconnect()
+		cooldownCompletedConns[abilityId] = nil
+	end
+
+	if cooldownTweens[abilityId] then
+		cooldownTweens[abilityId]:Cancel()
+	end
+
+	if remaining > 0 then
+		cooldownEndTimes[abilityId] = os.clock() + remaining
+	else
+		cooldownEndTimes[abilityId] = nil
+	end
+
+	frame.BackgroundTransparency = 0.75
+	frame.Size = UDim2.new(1, 0, 1, 0)
+	frame.Visible = true
+
+	local tweenInfo = TweenInfo.new(remaining, Enum.EasingStyle.Linear)
+	local targetSize = UDim2.new(0, 0, 1, 0)
+	local tween = TweenService:Create(frame, tweenInfo, { Size = UDim2.new(0, 0, 1, 0) })
+
+	cooldownCompletedConns[abilityId] = tween.Completed:Connect(function()
+		frame.Visible = false
+		cooldownTweens[abilityId] = nil
+		cooldownCompletedConns[abilityId] = nil
+	end)
+
+	tween:Play()
+	cooldownTweens[abilityId] = tween
+end
 
 function InputController:SetupStartMatchButton()
 	local player = Players.LocalPlayer

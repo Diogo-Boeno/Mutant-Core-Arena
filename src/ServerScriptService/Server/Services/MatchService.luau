@@ -110,7 +110,7 @@ function MatchService:CreatePlayerState(player)
 	for i, id in ipairs(sortedIds) do
 		abilityList[i] = {
 			Id = id,
-			Color = nil,
+			Core = state.Core,
 		}
 	end
 
