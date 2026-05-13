@@ -76,7 +76,7 @@ return {
 		Id = "FireNova",
 		Core = "Fire",
 		Cooldown = 12,
-		Radius = 16,
+		Radius = 24, --16
 		Damage = 30,
 		BurnDamage = 8,
 

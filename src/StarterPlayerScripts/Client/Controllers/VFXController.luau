@@ -4,6 +4,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Net = require(ReplicatedStorage.Shared.Net.Net)
 
+local GravityPulseVFXTemplate = ReplicatedStorage.Assets:WaitForChild('VFX'):WaitForChild('GravityPulse'):WaitForChild('DistortionSphere')
+
 local VFXController = {}
 
 function VFXController:Init()
@@ -39,19 +41,21 @@ function VFXController:PlayGravityPulse(payload)
 	local folder = Workspace:FindFirstChild("ClientEffects") or Workspace
 	local modelTest = Workspace:FindFirstChild('Bubbles')
 
-	local sphere = Instance.new("Part")
+	-- local sphere = Instance.new("Part")
+	local sphere = GravityPulseVFXTemplate:Clone()
 	sphere.Name = "GravityPulseVFX"
-	sphere.Shape = Enum.PartType.Ball
+	-- sphere.Shape = Enum.PartType.Ball
 	sphere.Anchored = true
 	sphere.CanCollide = false
 	sphere.CanTouch = false
 	sphere.CanQuery = false
-	sphere.Material = Enum.Material.Neon
+	-- sphere.Material = Enum.Material.Neon
 	sphere.Color = Color3.fromRGB(120, 40, 255)
-	sphere.Transparency = 0.45
+	-- sphere.Transparency = 0.45
 	sphere.Size = Vector3.new(1, 1, 1)
 	sphere.Position = origin
-	sphere.Parent = folder
+	sphere.Parent = folder:WaitForChild('Grav')
+	-- sphere.Parent = folder
 
 	local expandTween = TweenService:Create(
 		sphere,
