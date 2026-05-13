@@ -57,6 +57,7 @@ function VFXController:PlayGravityPulse(payload)
 	sphere.Parent = folder:WaitForChild('Grav')
 	-- sphere.Parent = folder
 
+
 	local expandTween = TweenService:Create(
 		sphere,
 		TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
@@ -164,7 +165,8 @@ function VFXController:PlayMutationApplied(payload)
 	aura.CanTouch = false
 	aura.CanQuery = false
 	aura.Material = Enum.Material.Neon
-	aura.Color = Color3.fromRGB(120, 255, 210)
+	-- aura.Color = Color3.fromRGB(120, 255, 210)
+	aura.Color = Color3.fromRGB(251, 255, 147)
 	aura.Transparency = 0.35
 	aura.Size = Vector3.new(3, 3, 3)
 	aura.Position = root.Position

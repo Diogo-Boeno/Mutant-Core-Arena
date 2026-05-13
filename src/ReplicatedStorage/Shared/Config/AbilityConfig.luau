@@ -5,9 +5,9 @@ return {
 		Id = "GravityPulse",
 		Core = "Gravity",
 		Cooldown = 1,
-		Radius = 14,
+		Radius = 12,
 		Damage = 20,
-		PullForce = 65,
+		PullForce = 0, -- vai empurrar ao inves de puxar
 
 		Server = { MaxTargets = 15 },
 		Client = {
@@ -15,6 +15,11 @@ return {
 			CameraShake = 0.35,
 			Sound = "GravityPulseBoom",
 		},
+
+		VFXFolder = 'VFX.GravityPulse',
+		VFXType = 'ExpandingArea',
+		VFXScale = 0.8,
+		VFXDuration = 0.8
 	},
 
 	-- Advanced
@@ -33,6 +38,11 @@ return {
 			CameraShake = 0.45,
 			Sound = "GravityWave",
 		},
+
+		VFXFolder = 'VFX.GravitonWaves',
+		VFXType = 'ExpandingArea',
+		VFXScale = 1,
+		VFXDuration = 0.8
 	},
 
 	-- Ultimate
@@ -40,10 +50,10 @@ return {
 		Id = "Blackhole",
 		Core = "Gravity",
 		Cooldown = 60,
-		Radius = 30,
-		Damage = 60,
-		PullForce = 150,
-		Duration = 8, -- Segundos ativos
+		Radius = 25,
+		Damage = 10, -- 60
+		PullForce = 150, -- 150
+		Duration = 6, -- Segundos ativos
 
 		Server = { MaxTargets = 50 },
 		Client = {
@@ -51,6 +61,11 @@ return {
 			CameraShake = 0.75,
 			Sound = "BlackholeRoar",
 		},
+
+		VFXFolder = 'VFX.Blackhole',
+		VFXType = 'ExpandingArea',
+		VFXScale = 0.8,
+		VFXDuration = 5.0
 	},
 
 	--// FIRE CORE
@@ -69,6 +84,10 @@ return {
 			CameraShake = 0.15,
 			Sound = "FireballWhoosh",
 		},
+
+		VFXFolder = "VFX.Fireball",
+		VFXType = "Projectile",
+		ProjectileSpeed = 30,
 	},
 
 	-- Advanced
@@ -86,6 +105,11 @@ return {
 			CameraShake = 0.40,
 			Sound = "FireExplosion",
 		},
+
+		VFXFolder = 'VFX.FireNova',
+		VFXType = 'ExpandingArea',
+		VFXScale = 1,
+		VFXDuration = 5.0
 	},
 
 	-- Ultimate
@@ -94,7 +118,7 @@ return {
 		Core = "Fire",
 		Cooldown = 55,
 		Radius = 25,
-		Damage = 70,
+		Damage = 30,
 		BurnDamage = 12,
 		Meteors = 8, -- Número de meteoros
 
@@ -104,6 +128,10 @@ return {
 			CameraShake = 0.80,
 			Sound = "ApocalypseFire",
 		},
+
+		VFXFolder = "VFX.Meteor",
+		VFXType = "Projectile",
+		ProjectileSpeed = 80,
 	},
 
 	--// ELECTRIC CORE

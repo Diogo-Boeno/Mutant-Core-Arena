@@ -7,6 +7,7 @@ local TweenService = game:GetService('TweenService')
 local Net = require(ReplicatedStorage.Shared.Net.Net)
 local UIStyle = require(script.Parent:WaitForChild('UIStyle'))
 local InputsConfig = require(ReplicatedStorage:WaitForChild('Shared'):WaitForChild('Config'):WaitForChild('InputsConfig'))
+local AbilityConfig = require(ReplicatedStorage:WaitForChild('Shared'):WaitForChild('Config'):WaitForChild('AbilityConfig'))
 local CORE_COLORS = require(script.Parent:WaitForChild('CoreColors'))
 
 local InputController = {}
@@ -39,13 +40,17 @@ function InputController:Start()
 	end)
 	
 	Net:OnClientEvent('HUDUpdate', function(data)
+		   print("[HUDUpdate] recebido:", data.Type, data.AbilityId)
 		if data.Type == 'AbilityUsed' then
 			self:StartCooldown(data.AbilityId, data.Cooldown)
+
+			self:PlayAbilityShake(data.AbilityId)
 		elseif data.Type == 'AbilityCooldown' then
 			self:SetCooldownRemaining(data.AbilityId, data.Remaining)
 		end
 	end)
 end
+
 
 function InputController:SetupInputs()
 	UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -108,7 +113,7 @@ function InputController:UpdateAbilityButtons(abilityList)
 			cooldownOverlay.Visible = false
 			cooldownOverlay.Size = UDim2.new(1, 0, 1, 0)
 			cooldownOverlay.Position = UDim2.new(0, 0, 0.5, 0)
-			cooldownOverlay.BackgroundTransparency = 0.75
+			cooldownOverlay.BackgroundTransparency = 0.9
 			cooldownOverlay.BorderSizePixel = 0
 			cooldownOverlay.ZIndex = 5
 
