@@ -101,11 +101,14 @@ end
 function VFXController:ApplyExpandingArea(clone, data)
     local mainPart = getMainPart(clone)
     if mainPart then
-        local startSize = mainPart.Size
-        local targetSize = startSize * (data.VFXScale or 2)
-        TweenService:Create(mainPart, TweenInfo.new(data.VFXDuration or 0.8), {
+        local targetSize = mainPart.Size * (data.VFXScale or 2)
+
+        -- Começa pequeno
+        mainPart.Size = Vector3.new(0.1, 0.1, 0.1)
+
+        TweenService:Create(mainPart, TweenInfo.new(data.VFXDuration or 0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
             Size = targetSize,
-            Transparency = 1
+            Transparency = 12
         }):Play()
     end
 end

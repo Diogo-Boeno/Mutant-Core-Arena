@@ -7,7 +7,6 @@ local TweenService = game:GetService('TweenService')
 local Net = require(ReplicatedStorage.Shared.Net.Net)
 local UIStyle = require(script.Parent:WaitForChild('UIStyle'))
 local InputsConfig = require(ReplicatedStorage:WaitForChild('Shared'):WaitForChild('Config'):WaitForChild('InputsConfig'))
-local AbilityConfig = require(ReplicatedStorage:WaitForChild('Shared'):WaitForChild('Config'):WaitForChild('AbilityConfig'))
 local CORE_COLORS = require(script.Parent:WaitForChild('CoreColors'))
 
 local InputController = {}

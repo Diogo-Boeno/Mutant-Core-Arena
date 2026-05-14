@@ -22,21 +22,6 @@ end
 
 function MatchService:Start()
 	print("[MatchService] Start")
-
-	-- task.spawn(function()
-	-- 	while true do
-	-- 		if currentState == MatchState.Waiting and #Players:GetPlayers() > 0 then
-	-- 			task.wait(5)
-
-	-- 			if currentState == MatchState.Waiting and #Players:GetPlayers() > 0 then
-	-- 				self:StartMatch()
-	-- 			end
-	-- 		end
-
-	-- 		task.wait(1)
-	-- 	end
-	-- end)
-
 	Net:OnServerEvent('RequestStartMatch', function(player)
 		if self:IsMatchRunning() then return end
 
@@ -69,17 +54,15 @@ end
 
 function MatchService:CreatePlayerState(player)
 	local selectedCore = "Gravity"
-	local AbilityConfig = require(game.ReplicatedStorage.Shared.Config.AbilityConfig)
+	local AbilityService = require(script.Parent.AbilityService)
 
 	local abilities = {}
-	for _, ability in pairs(AbilityConfig) do
-		if ability.Core == selectedCore then
-			abilities[ability.Id] = {
-				Id = ability.Id,
-				CooldownEndsAt = 0,
-				BaseCooldown = ability.Cooldown,
-			}
-		end
+	for _, ability in ipairs(AbilityService:GetAbilitiesForCore(selectedCore)) do
+		abilities[ability.Id] = {
+			Id = ability.Id,
+			CooldownEndsAt = 0,
+			BaseCooldown = ability.Cooldown
+		}
 	end
 
 	local state = {

@@ -98,6 +98,7 @@ function AbilityService:ActivateAbility(player, abilityId)
 	abilityState.CooldownEndsAt = now + cooldown
 
 	local origin = root.Position
+	-- local origin = root.Position - Vector3.new(0, root.Size.Y / 2 + 2.5, 0)
 
 	-- Executa a habilidade
 	task.spawn(function()

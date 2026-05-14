@@ -1,31 +1,35 @@
 local CombatService = require(game.ServerScriptService.Server.Services.CombatService)
 
 return {
-	Id      = "GravityPulse",
-	Core    = "Gravity",
-	Tier    = "Base",
+	Id = "GravityPulse",
+	Core = "Gravity",
+	Tier = "Base",
 	Cooldown = 1,
 
 	VFX = {
-		AbilityId   = "GravityPulse",
-		Type        = "ExpandingArea",
-		Scale       = 0.8,
-		Duration    = 0.8,
-		Sound       = "GravityPulseBoom",
+		AbilityId = "GravityPulse",
+		Type = "ExpandingArea",
+		Scale = 1,
+		Duration = 0.4,
+		Sound = "GravityPulseBoom",
 		CameraShake = 0.35,
 	},
 
 	Display = {
-		Name        = "Gravity Pulse",
+		Name = "Gravity Pulse",
 		Description = "Emite uma onda de gravidade que empurra inimigos próximos.",
 	},
 
 	Execute = function(player, state, origin)
-		local radius     = 12 * (1 + (state.Modifiers.AreaRadius or 0))
-		local damage     = 20 * (1 + (state.Modifiers.GravityPulseDamageMultiplier or 0))
+		local character = player.Character
+		local root = character and character:FindFirstChild('HumanoidRootPart')
+		local groundOrigin = root and (root.Position - Vector3.new(0, root.Size.Y / 2 + 2.5, 0)) or origin
+
+		local radius = 12 * (1 + (state.Modifiers.AreaRadius or 0))
+		local damage = 20 * (1 + (state.Modifiers.GravityPulseDamageMultiplier or 0))
 		local maxTargets = 15
 
-		local enemies = CombatService:GetEnemiesInRadius(origin, radius, maxTargets)
+		local enemies = CombatService:GetEnemiesInRadius(groundOrigin, radius, maxTargets)
 		for _, enemy in ipairs(enemies) do
 			CombatService:ApplyDamage(player, enemy, damage, "Gravity")
 			CombatService:ApplyPull(enemy, origin, 0) -- 0 = empurra
