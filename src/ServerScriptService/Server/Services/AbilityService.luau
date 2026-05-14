@@ -1,34 +1,59 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
+
 local Net = require(ReplicatedStorage.Shared.Net.Net)
-local ComponentResolver = require(script.Parent.Parent.Systems.ComponentResolver) -- ajuste o caminho se necessário
 
 local AbilityService = {}
 
--- Cache de módulos de componentes
-local componentModules = {
-	AreaDamage = require(script.Parent.Parent.Components.AreaDamage),
-	Pull = require(script.Parent.Parent.Components.Pull),
-	DamageOverTime = require(script.Parent.Parent.Components.DamageOverTime),
-	StatusEffect = require(script.Parent.Parent.Components.StatusEffect),
-	SelfBuff = require(script.Parent.Parent.Components.SelfBuff),
-	Shield = require(script.Parent.Parent.Components.Shield),
-	Dash = require(script.Parent.Parent.Components.Dash),
-	Teleport = require(script.Parent.Parent.Components.Teleport),
-	PersistentArea = require(script.Parent.Parent.Components.PersistentArea),
-	MeteorShower = require(script.Parent.Parent.Components.MeteorShower),
-	ChainDamage = require(script.Parent.Parent.Components.ChainDamage),
-	Visual = require(script.Parent.Parent.Components.Visual),
-}
+-- Carrega todos os módulos de habilidade automaticamente
+-- Estrutura esperada: ServerScriptService.Server.Abilities.<Core>.<AbilityId>
+local abilities = {}
+
+local function loadAbilities()
+	local abilitiesFolder = ServerScriptService.Server:FindFirstChild("Abilities")
+	if not abilitiesFolder then
+		warn("[AbilityService] Pasta Abilities não encontrada em Server")
+		return
+	end
+
+	for _, coreFolder in ipairs(abilitiesFolder:GetChildren()) do
+		for _, module in ipairs(coreFolder:GetChildren()) do
+			local ok, ability = pcall(require, module)
+			if ok and ability and ability.Id then
+				abilities[ability.Id] = ability
+				-- print("[AbilityService] Carregada:", ability.Id)
+			else
+				warn("[AbilityService] Falha ao carregar módulo:", module.Name, ability)
+			end
+		end
+	end
+end
 
 function AbilityService:Init()
 	print("[AbilityService] Init")
+	loadAbilities()
 end
 
 function AbilityService:Start()
 	print("[AbilityService] Start")
+
 	Net:OnServerEvent("AbilityRequest", function(player, abilityId)
 		self:ActivateAbility(player, abilityId)
 	end)
+end
+
+function AbilityService:GetAbility(abilityId)
+	return abilities[abilityId]
+end
+
+function AbilityService:GetAbilitiesForCore(core)
+	local result = {}
+	for _, ability in pairs(abilities) do
+		if ability.Core == core then
+			table.insert(result, ability)
+		end
+	end
+	return result
 end
 
 function AbilityService:ActivateAbility(player, abilityId)
@@ -41,15 +66,22 @@ function AbilityService:ActivateAbility(player, abilityId)
 
 	local abilityState = state.Abilities[abilityId]
 	if not abilityState then
-		warn("[AbilityService] Ability not found in player state:", abilityId)
+		warn("[AbilityService] Habilidade não encontrada no estado do player:", abilityId)
 		return
 	end
 
+	local ability = abilities[abilityId]
+	if not ability then
+		warn("[AbilityService] Módulo de habilidade não carregado:", abilityId)
+		return
+	end
+
+	-- Checa cooldown
 	local now = os.clock()
 	if now < abilityState.CooldownEndsAt then
 		local remaining = abilityState.CooldownEndsAt - now
 		Net:FireClient(player, "HUDUpdate", {
-			Type = "AbilityCooldown",
+			Type      = "AbilityCooldown",
 			AbilityId = abilityId,
 			Remaining = remaining,
 		})
@@ -60,32 +92,37 @@ function AbilityService:ActivateAbility(player, abilityId)
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	if not root then return end
 
-	-- Resolver componentes com modificadores atuais
-	local components = ComponentResolver.Resolve(abilityId, state)
-
-	-- Calcular cooldown final (usando modificador global)
+	-- Aplica modificador de cooldown
 	local cooldown = abilityState.BaseCooldown or 0
 	cooldown = cooldown * (1 + (state.Modifiers.GlobalCooldown or 0))
 	abilityState.CooldownEndsAt = now + cooldown
 
-	-- Executar componentes em sequência
 	local origin = root.Position
-	for _, comp in ipairs(components) do
-		task.spawn(function()
-			local module = componentModules[comp.Type]
-			if module then
-				module:Execute(player, state, comp, origin)
-			else
-				warn("[AbilityService] Missing component module:", comp.Type)
-			end
-		end)
+
+	-- Executa a habilidade
+	task.spawn(function()
+		ability.Execute(player, state, origin)
+	end)
+
+	-- Dispara VFX automaticamente com todos os campos corretos
+	if ability.VFX then
+		Net:FireAllClients("ClientVFX", {
+			AbilityId   = ability.VFX.AbilityId,
+			VFXType     = ability.VFX.Type,
+			VFXScale    = ability.VFX.Scale,
+			VFXDuration = ability.VFX.Duration,
+			Sound       = ability.VFX.Sound,
+			CameraShake = ability.VFX.CameraShake,
+			Origin      = origin,
+			UserId      = player.UserId,
+		})
 	end
 
-	-- Notificar usado
+	-- Notifica HUD
 	Net:FireClient(player, "HUDUpdate", {
-		Type = "AbilityUsed",
+		Type      = "AbilityUsed",
 		AbilityId = abilityId,
-		Cooldown = cooldown,
+		Cooldown  = cooldown,
 	})
 end
 
