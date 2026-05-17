@@ -1,4 +1,5 @@
-local CombatService = require(game.ServerScriptService.Server.Services.CombatService)
+local CombatService  = require(game.ServerScriptService.Server.Services.CombatService)
+local HitboxService  = require(game.ServerScriptService.Server.Services.HitboxService)
 
 return {
 	Id       = "GravitonWave",
@@ -28,7 +29,7 @@ return {
 		local slowDuration = 3
 		local maxTargets = 25
 
-		local enemies = CombatService:GetEnemiesInRadius(origin, radius, maxTargets)
+		local enemies = HitboxService:Sphere(origin, radius, maxTargets)
 		for _, enemy in ipairs(enemies) do
 			CombatService:ApplyDamage(player, enemy, damage, "Gravity")
 			CombatService:ApplyPull(enemy, origin, pullForce)

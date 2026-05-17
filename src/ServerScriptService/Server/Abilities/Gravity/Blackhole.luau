@@ -1,4 +1,5 @@
 local CombatService = require(game.ServerScriptService.Server.Services.CombatService)
+local HitboxService = require(game.ServerScriptService.Server.Services.HitboxService)
 
 return {
 	Id       = "Blackhole",
@@ -28,16 +29,10 @@ return {
 		local interval   = 0.5
 		local maxTargets = 50
 
-		local startTime = os.clock()
-
-		task.spawn(function()
-			while os.clock() - startTime < duration do
-				local enemies = CombatService:GetEnemiesInRadius(origin, radius, maxTargets)
-				for _, enemy in ipairs(enemies) do
-					CombatService:ApplyDamage(player, enemy, damage, "Gravity")
-					CombatService:ApplyPull(enemy, origin, pullForce)
-				end
-				task.wait(interval)
+		HitboxService:SphereTick(origin, radius, duration, interval, maxTargets, function(enemies)
+			for _, enemy in ipairs(enemies) do
+				CombatService:ApplyDamage(player, enemy, damage, "Gravity")
+				CombatService:ApplyPull(enemy, origin, pullForce)
 			end
 		end)
 	end,

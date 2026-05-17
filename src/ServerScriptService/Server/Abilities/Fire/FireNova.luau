@@ -1,4 +1,5 @@
-local CombatService = require(game.ServerScriptService.Server.Services.CombatService)
+local CombatService  = require(game.ServerScriptService.Server.Services.CombatService)
+local HitboxService  = require(game.ServerScriptService.Server.Services.HitboxService)
 
 return {
 	Id       = "FireNova",
@@ -20,14 +21,14 @@ return {
 		Description = "Explosão de fogo em área ampla com queimadura.",
 	},
 
-	Execute = function(player, state, origin)
+	Execute = function(player, _, origin)
 		local radius       = 24
 		local damage       = 30
 		local burnDamage   = 8
 		local burnDuration = 4
 		local maxTargets   = 20
 
-		local enemies = CombatService:GetEnemiesInRadius(origin, radius, maxTargets)
+		local enemies = HitboxService:Sphere(origin, radius, maxTargets)
 		for _, enemy in ipairs(enemies) do
 			CombatService:ApplyDamage(player, enemy, damage, "Fire")
 

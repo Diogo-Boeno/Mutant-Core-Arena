@@ -1,4 +1,5 @@
-local CombatService = require(game.ServerScriptService.Server.Services.CombatService)
+local CombatService  = require(game.ServerScriptService.Server.Services.CombatService)
+local HitboxService  = require(game.ServerScriptService.Server.Services.HitboxService)
 
 return {
 	Id       = "LightningBolt",
@@ -20,13 +21,13 @@ return {
 		Description = "Raio que atinge inimigos próximos e aplica stun.",
 	},
 
-	Execute = function(player, state, origin)
+	Execute = function(player, _, origin)
 		local radius      = 6
 		local damage      = 25
 		local stunDuration = 0.8
 		local maxTargets  = 8
 
-		local enemies = CombatService:GetEnemiesInRadius(origin, radius, maxTargets)
+		local enemies = HitboxService:Sphere(origin, radius, maxTargets)
 		for _, enemy in ipairs(enemies) do
 			CombatService:ApplyDamage(player, enemy, damage, "Electric")
 

@@ -53,7 +53,8 @@ function MatchService:StartMatch()
 end
 
 function MatchService:CreatePlayerState(player)
-	local selectedCore = "Gravity"
+	local BuildService = require(script.Parent.BuildService)
+	local selectedCore = BuildService:GetCore(player)
 	local AbilityService = require(script.Parent.AbilityService)
 
 	local abilities = {}
@@ -179,6 +180,10 @@ function MatchService:EndMatch()
 
 	currentState = MatchState.Waiting
 	playerStates = {}
+
+	Net:FireAllClients("MatchStateUpdate", {
+		State = currentState,
+	})
 
 	print("[MatchService] Back to waiting")
 end

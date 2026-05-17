@@ -1,4 +1,5 @@
 local CombatService = require(game.ServerScriptService.Server.Services.CombatService)
+local HitboxService = require(game.ServerScriptService.Server.Services.HitboxService)
 
 return {
 	Id       = "ChainLightning",
@@ -20,17 +21,16 @@ return {
 		Description = "Raio que salta entre até 5 inimigos.",
 	},
 
-	Execute = function(player, state, origin)
-		local radius       = 10
+	Execute = function(player, _, origin)
+		local firstRadius  = 10
+		local chainRadius  = 10
 		local damage       = 22
-		local chains       = 5
+		local maxChains    = 5
 		local stunDuration = 0.5
 		local maxTargets   = 30
 
-		local enemies = CombatService:GetEnemiesInRadius(origin, radius, maxTargets)
-
-		for i = 1, math.min(chains, #enemies) do
-			local enemy = enemies[i]
+		local enemies = HitboxService:Chain(origin, firstRadius, chainRadius, maxChains, maxTargets)
+		for _, enemy in ipairs(enemies) do
 			CombatService:ApplyDamage(player, enemy, damage, "Electric")
 
 			local humanoid = enemy:FindFirstChildOfClass("Humanoid")

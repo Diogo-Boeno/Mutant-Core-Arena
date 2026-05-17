@@ -1,4 +1,5 @@
-local CombatService = require(game.ServerScriptService.Server.Services.CombatService)
+local CombatService  = require(game.ServerScriptService.Server.Services.CombatService)
+local HitboxService  = require(game.ServerScriptService.Server.Services.HitboxService)
 
 return {
 	Id       = "FrostWave",
@@ -20,13 +21,13 @@ return {
 		Description = "Onda de gelo que congela inimigos por 1.5 segundos.",
 	},
 
-	Execute = function(player, state, origin)
+	Execute = function(player, _, origin)
 		local radius        = 18
 		local damage        = 32
 		local freezeDuration = 1.5
 		local maxTargets    = 22
 
-		local enemies = CombatService:GetEnemiesInRadius(origin, radius, maxTargets)
+		local enemies = HitboxService:Sphere(origin, radius, maxTargets)
 		for _, enemy in ipairs(enemies) do
 			CombatService:ApplyDamage(player, enemy, damage, "Ice")
 

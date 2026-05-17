@@ -1,27 +1,28 @@
 local CombatService = require(game.ServerScriptService.Server.Services.CombatService)
+local HitboxService = require(game.ServerScriptService.Server.Services.HitboxService)
 local Net = require(game.ReplicatedStorage.Shared.Net.Net)
 
 return {
-	Id       = "HellfireStorm",
-	Core     = "Fire",
-	Tier     = "Ultimate",
+	Id = "HellfireStorm",
+	Core = "Fire",
+	Tier = "Ultimate",
 	Cooldown = 55,
 
 	VFX = {
-		AbilityId       = "HellfireStorm",
-		Type            = "Projectile",
+		AbilityId = "HellfireStorm",
+		Type = "Projectile",
 		ProjectileSpeed = 80,
-		Duration        = 3.0,
-		Sound           = "ApocalypseFire",
-		CameraShake     = 0.80,
+		Duration = 3.0,
+		Sound = "ApocalypseFire",
+		CameraShake = 0.80,
 	},
 
 	Display = {
-		Name        = "Hellfire Storm",
+		Name = "Hellfire Storm",
 		Description = "Chuva de meteoros que devastam a área.",
 	},
 
-	Execute = function(player, state, origin)
+	Execute = function(player, _, origin)
 		local meteorCount  = 8
 		local fallRadius   = 30
 		local damage       = 30
@@ -34,12 +35,11 @@ return {
 			task.spawn(function()
 				task.wait((i - 1) * 0.3)
 
-				local angle      = math.random() * math.pi * 2
-				local dist       = math.random() * fallRadius
-				local offset     = Vector3.new(math.cos(angle), 0, math.sin(angle)) * dist
+				local angle       = math.random() * math.pi * 2
+				local dist        = math.random() * fallRadius
+				local offset      = Vector3.new(math.cos(angle), 0, math.sin(angle)) * dist
 				local impactPoint = origin + offset
 
-				-- VFX do impacto individual
 				Net:FireAllClients("ClientVFX", {
 					AbilityId   = "HellfireStorm",
 					Type        = "ExpandingArea",
@@ -51,7 +51,7 @@ return {
 					UserId      = player.UserId,
 				})
 
-				local enemies = CombatService:GetEnemiesInRadius(impactPoint, impactRadius, maxTargets)
+				local enemies = HitboxService:Sphere(impactPoint, impactRadius, maxTargets)
 				for _, enemy in ipairs(enemies) do
 					CombatService:ApplyDamage(player, enemy, damage, "Fire")
 

@@ -1,4 +1,5 @@
 local CombatService = require(game.ServerScriptService.Server.Services.CombatService)
+local HitboxService = require(game.ServerScriptService.Server.Services.HitboxService)
 
 return {
 	Id       = "ThunderDome",
@@ -20,7 +21,7 @@ return {
 		Description = "Cria uma cúpula elétrica que fulmina inimigos por 6 segundos.",
 	},
 
-	Execute = function(player, state, origin)
+	Execute = function(player, _, origin)
 		local radius       = 22
 		local damage       = 55
 		local stunDuration = 1.5
@@ -28,25 +29,19 @@ return {
 		local interval     = 0.5
 		local maxTargets   = 45
 
-		local startTime = os.clock()
+		HitboxService:SphereTick(origin, radius, duration, interval, maxTargets, function(enemies)
+			for _, enemy in ipairs(enemies) do
+				CombatService:ApplyDamage(player, enemy, damage * interval, "Electric")
 
-		task.spawn(function()
-			while os.clock() - startTime < duration do
-				local enemies = CombatService:GetEnemiesInRadius(origin, radius, maxTargets)
-				for _, enemy in ipairs(enemies) do
-					CombatService:ApplyDamage(player, enemy, damage * interval, "Electric")
-
-					local humanoid = enemy:FindFirstChildOfClass("Humanoid")
-					if humanoid then
-						humanoid.PlatformStand = true
-						task.delay(stunDuration, function()
-							if humanoid and humanoid.Parent then
-								humanoid.PlatformStand = false
-							end
-						end)
-					end
+				local humanoid = enemy:FindFirstChildOfClass("Humanoid")
+				if humanoid then
+					humanoid.PlatformStand = true
+					task.delay(stunDuration, function()
+						if humanoid and humanoid.Parent then
+							humanoid.PlatformStand = false
+						end
+					end)
 				end
-				task.wait(interval)
 			end
 		end)
 	end,

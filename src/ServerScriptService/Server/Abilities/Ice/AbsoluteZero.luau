@@ -1,4 +1,5 @@
-local CombatService = require(game.ServerScriptService.Server.Services.CombatService)
+local CombatService  = require(game.ServerScriptService.Server.Services.CombatService)
+local HitboxService  = require(game.ServerScriptService.Server.Services.HitboxService)
 
 return {
 	Id       = "AbsoluteZero",
@@ -20,7 +21,7 @@ return {
 		Description = "Congela todos os inimigos próximos e aplica slow extremo.",
 	},
 
-	Execute = function(player, state, origin)
+	Execute = function(player, _, origin)
 		local radius        = 28
 		local damage        = 65
 		local freezeDuration = 4
@@ -28,7 +29,7 @@ return {
 		local slowDuration  = 6
 		local maxTargets    = 50
 
-		local enemies = CombatService:GetEnemiesInRadius(origin, radius, maxTargets)
+		local enemies = HitboxService:Sphere(origin, radius, maxTargets)
 		for _, enemy in ipairs(enemies) do
 			CombatService:ApplyDamage(player, enemy, damage, "Ice")
 

@@ -11,11 +11,13 @@ local function ensureRemotes()
 
 	local remoteNames = {
 		"AbilityRequest",
+		"AbilitiesUpdate",
 		"MutationChoice",
 		"MutationOffer",
 		"MatchStateUpdate",
 		"ClientVFX",
 		"HUDUpdate",
+		"CoreSelect",
 	}
 
 	for _, name in remoteNames do
@@ -33,6 +35,7 @@ local Services = script.Parent.Services
 local Systems = script.Parent.Systems
 
 local PlayerDataService = require(Services.PlayerDataService)
+local BuildService = require(Services.BuildService)
 local MatchService = require(Services.MatchService)
 local RewardService = require(Services.RewardService)
 local EnemyService = require(Services.EnemyService)
@@ -42,6 +45,7 @@ local MutationService = require(Services.MutationService)
 local AISystem = require(Systems.AISystem)
 
 PlayerDataService:Init()
+BuildService:Init()
 RewardService:Init()
 CombatService:Init()
 MutationService:Init()
@@ -51,6 +55,7 @@ AISystem:Init()
 MatchService:Init()
 
 PlayerDataService:Start()
+BuildService:Start()
 RewardService:Start()
 CombatService:Start()
 MutationService:Start()
