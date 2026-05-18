@@ -21,27 +21,72 @@ return {
 		Description = "Raio que salta entre até 5 inimigos.",
 	},
 
-	Execute = function(player, _, origin)
+	Execute = function(player, state, origin)
 		local firstRadius  = 10
-		local chainRadius  = 10
-		local damage       = 22
-		local maxChains    = 5
-		local stunDuration = 0.5
+		local chainRadius  = 10 + (state.Modifiers.ChainLightningJump or 0)
+		local damage       = 22 * (1 + (state.Modifiers.ChainLightningDmg or 0))
+		local maxChains    = 5  + (state.Modifiers.ChainLightningChains or 0)
+		local stunDur      = 0.5 + (state.Modifiers.ChainLightningStunDur or 0)
 		local maxTargets   = 30
 
-		local enemies = HitboxService:Chain(origin, firstRadius, chainRadius, maxChains, maxTargets)
-		for _, enemy in ipairs(enemies) do
-			CombatService:ApplyDamage(player, enemy, damage, "Electric")
+		local function doChain(chainOrigin)
+			local enemies = HitboxService:Chain(chainOrigin, firstRadius, chainRadius, maxChains, maxTargets)
+			for jumpIndex, enemy in ipairs(enemies) do
+				local jumpDmg = damage
+				-- Amplify: each jump does 15% more
+				if state.Effects.ChainLightningAmplify then
+					jumpDmg = jumpDmg * (1 + (jumpIndex - 1) * 0.15)
+				end
+				-- Overload: last target takes 3x
+				if state.Effects.ChainLightningOverload and jumpIndex == #enemies then
+					jumpDmg = jumpDmg * 3
+				end
 
-			local humanoid = enemy:FindFirstChildOfClass("Humanoid")
-			if humanoid then
-				humanoid.PlatformStand = true
-				task.delay(stunDuration, function()
-					if humanoid and humanoid.Parent then
-						humanoid.PlatformStand = false
+				CombatService:ApplyDamage(player, enemy, jumpDmg, "Electric")
+
+				local humanoid = enemy:FindFirstChildOfClass("Humanoid")
+				if humanoid then
+					humanoid.PlatformStand = true
+					task.delay(stunDur, function()
+						if humanoid and humanoid.Parent then
+							humanoid.PlatformStand = false
+						end
+					end)
+				end
+
+				-- Shock DoT per hit
+				if state.Effects.ChainLightningShock then
+					task.spawn(function()
+						for _ = 1, 3 do
+							local h = enemy:FindFirstChildOfClass("Humanoid")
+							if not h or h.Health <= 0 then break end
+							CombatService:ApplyDamage(player, enemy, 5, "Electric")
+							task.wait(1)
+						end
+					end)
+				end
+			end
+
+			-- Return: bounce back through all targets again
+			if state.Effects.ChainLightningReturn then
+				task.delay(0.4, function()
+					for i = #enemies, 1, -1 do
+						local enemy = enemies[i]
+						local h = enemy:FindFirstChildOfClass("Humanoid")
+						if h and h.Health > 0 then
+							CombatService:ApplyDamage(player, enemy, damage * 0.5, "Electric")
+						end
 					end
 				end)
 			end
+		end
+
+		doChain(origin)
+
+		if state.Effects.ChainLightningDouble then
+			task.delay(0.3, function()
+				doChain(origin)
+			end)
 		end
 	end,
 }

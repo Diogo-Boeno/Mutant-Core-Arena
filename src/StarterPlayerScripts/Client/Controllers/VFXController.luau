@@ -52,20 +52,76 @@ local function getMainPart(model)
     return largest
 end
 
+-- Core → fallback color map
+local CORE_COLORS = {
+    Gravity  = Color3.fromRGB(140, 80, 220),
+    Fire     = Color3.fromRGB(255, 100, 30),
+    Electric = Color3.fromRGB(255, 240, 50),
+    Ice      = Color3.fromRGB(100, 210, 255),
+    Defense  = Color3.fromRGB(80, 180, 80),
+    Mobility = Color3.fromRGB(255, 180, 60),
+}
+
+-- Derives a rough core name from the abilityId string prefix
+local function coreFromId(abilityId)
+    local lower = abilityId:lower()
+    if lower:find("gravity") or lower:find("graviton") or lower:find("blackhole") then return "Gravity"
+    elseif lower:find("fire") or lower:find("hellfire") then return "Fire"
+    elseif lower:find("lightning") or lower:find("chain") or lower:find("thunder") then return "Electric"
+    elseif lower:find("ice") or lower:find("frost") or lower:find("absolute") then return "Ice"
+    elseif lower:find("iron") or lower:find("shield") or lower:find("immortal") then return "Defense"
+    elseif lower:find("dash") or lower:find("phantom") then return "Mobility"
+    end
+    return nil
+end
+
+-- Generic expanding-sphere fallback when no VFX asset exists
+function VFXController:ApplyFallbackVFX(data)
+    local color = CORE_COLORS[coreFromId(data.AbilityId) or ""] or Color3.fromRGB(200, 200, 255)
+    local scale = data.VFXScale or 1
+    local duration = data.VFXDuration or 0.5
+
+    local part = Instance.new("Part")
+    part.Name        = "FallbackVFX_" .. data.AbilityId
+    part.Shape       = Enum.PartType.Ball
+    part.Material    = Enum.Material.Neon
+    part.Color       = color
+    part.Size        = Vector3.new(1, 1, 1)
+    part.CFrame      = CFrame.new(data.Origin)
+    part.Anchored    = true
+    part.CanCollide  = false
+    part.CastShadow  = false
+    part.Transparency = 0.3
+    part.Parent      = workspace
+
+    local targetSize = 12 * scale
+    TweenService:Create(part, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Size        = Vector3.new(targetSize, targetSize, targetSize),
+        Transparency = 1,
+    }):Play()
+
+    Debris:AddItem(part, duration + 0.1)
+end
+
 -- Função principal que todo evento chama
 function VFXController:ExecuteVFX(data)
-    print("[VFXController] ExecuteVFX data:", data, type(data))
-    if type(data) == "table" then
-        print("  AbilityId:", data.AbilityId)
-    end
+    if not data.AbilityId then return end  -- mutation or non-ability events have no AbilityId
 
     local folder = self:GetAbilityFolder(data.AbilityId)
-    if not folder then return end
+    if not folder then
+        -- No custom VFX asset — show generic fallback so ability still feels responsive
+        if data.Origin then
+            self:ApplyFallbackVFX(data)
+        end
+        return
+    end
 
-    
     local model = folder:FindFirstChildWhichIsA('Model')
     if not model then
         warn("[VFXController] Model não encontrado na pasta:", data.AbilityId)
+        if data.Origin then
+            self:ApplyFallbackVFX(data)
+        end
         return
     end
 
